@@ -209,5 +209,31 @@ CUSTOM = {
       "extra_assets": "    <texture type=\"2d\" name=\"roadtex\" file=\"/home/finch/Vishal_project/inception/inception-hackathon/out/textures/rect_road_clean.png\"/>\n    <material name=\"roadmat\" texture=\"roadtex\" texrepeat=\"2.50 1\"/>\n",
       "extra_geoms": "    <geom name=\"road_strip\" type=\"box\" pos=\"20 0 0.012\" size=\"30 6.12 0.01\" material=\"roadmat\" contype=\"0\" conaffinity=\"0\"/>\n"
     }
+  },
+  "twiiter": {
+    "geoms": "    <geom name=\"rock_r1\" type=\"sphere\" size=\"0.45\" pos=\"6 -4.5 0.45\" material=\"stone\"/>\n    <geom name=\"rock_r2\" type=\"sphere\" size=\"0.5\" pos=\"12 -5.2 0.5\" material=\"stone\"/>\n    <geom name=\"rock_l1\" type=\"sphere\" size=\"0.45\" pos=\"9 4.8 0.45\" material=\"stone\"/>\n    <geom name=\"rock_l2\" type=\"sphere\" size=\"0.4\" pos=\"16 5.5 0.4\" material=\"stone\"/>\n",
+    "look": {
+      "base_rgb": [
+        113,
+        101,
+        91
+      ],
+      "dirt_rgb": [
+        101,
+        88,
+        78
+      ],
+      "contrast": 0.75,
+      "sky": [
+        "0.52 0.69 0.84",
+        "0.67 0.54 0.42"
+      ],
+      "repeat": "3 3",
+      "prompt": "A cracked, sun-bleached asphalt road with faded white lane markings runs straight to the horizon through a flat, empty desert plain lined with dry golden grass under a clear blue sky.",
+      "skybox_file": "/home/finch/Vishal_project/inception/inception-hackathon/out/textures/sky_twiiter.png",
+      "ground_file": "/home/finch/Vishal_project/inception/inception-hackathon/out/textures/gnd_twiiter.png",
+      "extra_assets": "    <texture type=\"2d\" name=\"roadtex\" file=\"/home/finch/Vishal_project/inception/inception-hackathon/out/textures/rect_twiiter.png\"/>\n    <material name=\"roadmat\" texture=\"roadtex\" texrepeat=\"2.50 1\"/>\n",
+      "extra_geoms": "    <geom name=\"road_strip\" type=\"box\" pos=\"20 0 0.012\" size=\"30 6.12 0.01\" material=\"roadmat\" contype=\"0\" conaffinity=\"0\"/>\n"
+    }
   }
 }
