@@ -43,7 +43,8 @@ def run(args) -> None:
         scene.write_text(xml)
         cleanup = True
     else:
-        scene = scene_builder.build(args.width, args.height, props=not args.no_props)
+        scene = scene_builder.build(args.width, args.height,
+                                    props=not args.no_props, preset=args.preset)
         cleanup = True
 
     try:
@@ -130,5 +131,7 @@ if __name__ == "__main__":
     ap.add_argument("--cam-elev", type=float, default=-10.0)
     ap.add_argument("--plain", action="store_true", help="stock scene, for comparison")
     ap.add_argument("--no-props", action="store_true")
+    ap.add_argument("--preset", default="meadow",
+                    help="scene preset: meadow|warehouse|forest|street|courtyard")
     ap.add_argument("--out", type=pathlib.Path, default=ROOT / "out" / "scene.mp4")
     run(ap.parse_args())

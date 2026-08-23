@@ -106,6 +106,10 @@ def show(sh: Shared) -> None:
 
 def apply_key(sh: Shared, ch: str) -> bool:
     """Apply one keystroke. `ch` is a lowercase character. True if it did something."""
+    # `"" in "1234"` is True in Python, so an empty ch used to fall into the digit
+    # branch and raise int(""). Any non-printable viewer key produced one.
+    if len(ch) != 1:
+        return False
     if ch == "w":
         sh.cmd[0] = V_FWD; sh.axes["long"] = "forward"
     elif ch == "s":
@@ -122,7 +126,7 @@ def apply_key(sh: Shared, ch: str) -> bool:
         sh.stop()
     elif ch == "r":
         sh.reset_cache = True
-    elif ch in "1234":
+    elif ch.isdigit() and ch in "1234":
         sh.prompt_idx = int(ch) - 1
         sh.prompt_dirty = True
     else:
@@ -134,8 +138,11 @@ def apply_key(sh: Shared, ch: str) -> bool:
 def make_key_callback(sh: Shared):
     """For the MuJoCo viewer window (GLFW keycodes, uppercase ASCII)."""
     def on_key(code: int) -> None:
-        apply_key(sh, chr(code).lower() if 32 < code < 127 else
-                  (" " if code == K_SPACE else ""))
+        try:
+            apply_key(sh, chr(code).lower() if 32 < code < 127 else
+                      (" " if code == K_SPACE else ""))
+        except Exception as exc:                     # never kill the render thread
+            print(f"\n  key {code} ignored: {exc}")
     return on_key
 
 
@@ -153,21 +160,32 @@ def stdin_reader(sh: Shared) -> None:
     try:
         saved = termios.tcgetattr(fd)
     except termios.error:
-        return                                  # not a tty (piped input)
+        # stdin is a pipe, not a terminal — the GUI drives us this way. Read it
+        # plainly instead of bailing out; no termios setup is needed or possible.
+        saved = None
 
     try:
-        tty.setcbreak(fd)                       # char-at-a-time, Ctrl-C still works
-        new = termios.tcgetattr(fd)
-        new[3] &= ~termios.ECHO                 # don't echo driving keys
-        termios.tcsetattr(fd, termios.TCSANOW, new)
+        if saved is not None:
+            tty.setcbreak(fd)                   # char-at-a-time, Ctrl-C still works
+            new = termios.tcgetattr(fd)
+            new[3] &= ~termios.ECHO             # don't echo driving keys
+            termios.tcsetattr(fd, termios.TCSANOW, new)
         while not sh.quit:
             r, _, _ = select.select([fd], [], [], 0.2)
-            if r:
-                apply_key(sh, sys.stdin.read(1).lower())
+            if not r:
+                continue
+            data = sys.stdin.read(1)
+            if not data:                        # pipe closed: the GUI is done
+                if saved is None:
+                    return
+                continue
+            for ch in data:
+                apply_key(sh, ch.lower())
     except Exception:
         pass
     finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+        if saved is not None:
+            termios.tcsetattr(fd, termios.TCSADRAIN, saved)
 
 
 
@@ -186,7 +204,8 @@ class Compositor:
     """
 
     def __init__(self, model_xml: pathlib.Path, w: int, h: int, fps: int,
-                 out_path: pathlib.Path, fovy: float, dist: float, elev: float):
+                 out_path: pathlib.Path, fovy: float, dist: float, elev: float,
+                 preview: bool = False):
         import re
         # G1's scene.xml declares no offscreen framebuffer, so it defaults to
         # 640x480 and any larger Renderer raises. Inject one, writing beside the
@@ -216,6 +235,26 @@ class Compositor:
              str(out_path)],
             stdin=subprocess.PIPE)
         self.n = 0
+        # The MuJoCo viewer shows the raw sim, never the composite — without this
+        # you are driving blind and only see the result after the run.
+        self.preview = preview
+        self._cv2 = None
+        if preview:
+            try:
+                import cv2
+                cv2.namedWindow("composite", cv2.WINDOW_NORMAL)
+                cv2.resizeWindow("composite", min(w, 960), int(min(w, 960) * h / w))
+                self._cv2 = cv2
+            except Exception as exc:
+                # opencv-python-headless has imshow but no GUI backend; do not
+                # let a missing window abort the whole run.
+                print(f"  preview unavailable ({type(exc).__name__}); "
+                      f"recording continues to {out_path}")
+
+    def _show(self, rgb) -> None:
+        if self._cv2 is not None:
+            self._cv2.imshow("composite", rgb[:, :, ::-1])   # RGB -> BGR
+            self._cv2.waitKey(1)
 
     def frame(self, data, world_frame) -> None:
         """Render the robot at the sim's current state and composite one frame."""
@@ -242,6 +281,7 @@ class Compositor:
 
         if world_frame is RAW:        # plain chase-cam recording
             self.ff.stdin.write(rgb.astype(np.uint8).tobytes())
+            self._show(rgb)
             self.n += 1
             return
         if world_frame is None:
@@ -253,7 +293,9 @@ class Compositor:
         bg = self._contact_shadow(bg, mask)
         out = np.where(mask[:, :, None], rgb, bg)
 
-        self.ff.stdin.write(out.astype(np.uint8).tobytes())
+        out = out.astype(np.uint8)
+        self.ff.stdin.write(out.tobytes())
+        self._show(out)
         self.n += 1
 
     def _contact_shadow(self, bg, mask):
@@ -292,6 +334,11 @@ class Compositor:
             self.renderer.close()
         except Exception:
             pass
+        if self._cv2 is not None:
+            try:
+                self._cv2.destroyAllWindows()
+            except Exception:
+                pass
         self._tmp.unlink(missing_ok=True)
 
 
@@ -400,6 +447,15 @@ def main() -> None:
     ap.add_argument("--out", type=pathlib.Path, default=None,
                     help="download a clip of the drive on exit (.ts)")
     ap.add_argument("--duration", type=float, default=300.0)
+    ap.add_argument("--describe", default=None, metavar="TEXT",
+                    help='build a scene from a description and drive it, e.g. '
+                         '--describe "a scene in banaras". Generates, validates '
+                         'and walk-tests it first. Implies --dressed.')
+    ap.add_argument("--preset", default=None,
+                    help="an existing scene by name — the six built-ins "
+                         "(meadow|warehouse|forest|street|courtyard|medieval) or "
+                         "anything --describe saved earlier. `--preset list` shows "
+                         "all of them with their matching LingBot prompts.")
     ap.add_argument("--dressed", action="store_true",
                     help="teleop in the dressed physics scene — grass, sky, and "
                          "props you can actually walk into — instead of the stock "
@@ -412,6 +468,9 @@ def main() -> None:
     ap.add_argument("--comp-size", default="832x480",
                     help="composite resolution (832x480 is ~2.5x faster than 1664x960)")
     ap.add_argument("--comp-fps", type=int, default=10)
+    ap.add_argument("--preview", action="store_true",
+                    help="show the composited frames live in a window; the MuJoCo "
+                         "viewer only ever shows the raw sim")
     ap.add_argument("--script", default=None,
                     help="scripted keys for reproducible runs / headless testing, "
                          "e.g. \"0:w,8:q,14: ,18:w\" (seconds:key)")
@@ -422,6 +481,38 @@ def main() -> None:
     ap.add_argument("--cam-fovy", type=float, default=60.0,
                     help="vertical field of view; tune so horizons line up")
     args = ap.parse_args()
+
+    if args.describe:
+        # One command: describe -> generate -> validate -> walk-test -> drive.
+        import hashlib
+        import scene_describe
+        name = "d_" + hashlib.sha1(args.describe.encode()).hexdigest()[:8]
+        try:
+            import custom_presets
+            known = name in custom_presets.CUSTOM
+        except Exception:
+            known = False
+        if known:
+            print(f"scene for that description already built ({name})")
+        else:
+            print(f"building a scene for: {args.describe}")
+            r = subprocess.run(
+                [sys.executable, "scene_describe.py", args.describe, "--save", name],
+                cwd=str(ROOT))
+            if r.returncode != 0:
+                sys.exit("could not build a walkable scene from that description")
+        # The subprocess wrote custom_presets.py after we imported scene_builder.
+        import scene_builder as _sb
+        _sb.refresh()
+        args.preset = name
+
+    if args.preset == "list":
+        import scene_builder
+        for name in sorted(scene_builder.PRESETS):
+            print(f"\n{name}\n  {scene_builder.preset_prompt(name)}")
+        return
+    if args.preset:
+        args.dressed = True
 
     if args.speed is None:
         # 0.25 keeps the world model, which generates at 0.25x realtime, in step.
@@ -435,7 +526,9 @@ def main() -> None:
         import scene_builder
         cw0, ch0 = ((int(v) for v in args.comp_size.lower().split("x"))
                     if (args.composite or args.record) else (1280, 704))
-        scene_path = scene_builder.build(cw0, ch0, props=True)
+        scene_path = scene_builder.build(cw0, ch0, props=True,
+                                         preset=args.preset or "meadow")
+        print(f"scene: {args.preset or 'meadow'}")
     else:
         scene_path = pathlib.Path(cfg["xml_path"].replace("{LEGGED_GYM_ROOT_DIR}", root))
     m = mujoco.MjModel.from_xml_path(str(scene_path))
@@ -457,7 +550,8 @@ def main() -> None:
     if args.record:
         cw, ch = (int(v) for v in args.comp_size.lower().split("x"))
         rec = Compositor(scene_path, cw, ch, args.comp_fps, args.record,
-                         args.cam_fovy, args.cam_dist, args.cam_elev)
+                         args.cam_fovy, args.cam_dist, args.cam_elev,
+                         preview=args.preview)
         print(f"recording chase view {cw}x{ch} -> {args.record}")
 
     comp = None
@@ -466,7 +560,7 @@ def main() -> None:
         comp = Compositor(
             scene_path,
             cw, ch, args.comp_fps, args.composite,
-            args.cam_fovy, args.cam_dist, args.cam_elev)
+            args.cam_fovy, args.cam_dist, args.cam_elev, preview=args.preview)
         print(f"compositing {cw}x{ch} @ {args.comp_fps}fps -> {args.composite}")
 
     thread = None

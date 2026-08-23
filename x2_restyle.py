@@ -27,9 +27,13 @@ from reactor_sdk import Reactor, ReactorStatus
 ROOT = pathlib.Path(__file__).parent
 MODEL = "xmax/x2"
 
+# X2's schema calls this "the editing instruction, e.g. 'replace the person with
+# the character from the reference image'". A scene *description* does nothing —
+# the first attempt asked for "a dirt path in an open meadow" and got a relit
+# checkerboard. Phrase it as an edit applied to what is already there.
 DEFAULT_PROMPT = (
-    "A photorealistic humanoid robot walking along a dirt path in an open meadow, "
-    "warm afternoon sunlight, grass and scattered rocks, distant hills, cinematic."
+    "Make this photorealistic: real materials and surface detail, natural outdoor "
+    "lighting with soft shadows, film-camera depth of field and grain."
 )
 
 
@@ -113,6 +117,11 @@ async def run(args) -> None:
             got += 1
 
         await reactor.send_command("set_prompt", {"prompt": args.prompt})
+        if args.keep_backlog:
+            # "Consume every frame in order for smoother motion, at the cost of
+            # growing delay." Default drops backlog, which is why an earlier run
+            # returned 178 of 215 frames. For an offline render, 1:1 wins.
+            await reactor.send_command("set_keep_backlog", {"keep_backlog": True})
         print(f"prompt: {args.prompt[:70]}...")
 
         source = await reactor.track("source").publish()
@@ -156,6 +165,10 @@ def main() -> None:
     ap.add_argument("--out", type=pathlib.Path, default=ROOT / "out" / "x2_out.mp4")
     ap.add_argument("--prompt", default=DEFAULT_PROMPT)
     ap.add_argument("--fps", type=int, default=12, help="push rate")
+    ap.add_argument("--keep-backlog", action="store_true", default=True,
+                    help="consume every source frame in order (1:1 output)")
+    ap.add_argument("--drop-backlog", dest="keep_backlog", action="store_false",
+                    help="drop backlog to bound latency (X2's default)")
     ap.add_argument("--drain", type=float, default=15.0,
                     help="seconds to keep receiving after the source ends")
     args = ap.parse_args()
