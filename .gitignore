@@ -15,3 +15,4 @@ asimov-mjlab/
 # Test output
 out/
 *.mp4
+unitree_rl_gym/
