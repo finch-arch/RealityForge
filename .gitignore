@@ -1,0 +1,17 @@
+# Secrets — never commit
+api.js
+.env
+*.key
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Independent clones of Menlo's repos (not submodules)
+asimov-v0/
+asimov-mjlab/
+
+# Test output
+out/
+*.mp4
