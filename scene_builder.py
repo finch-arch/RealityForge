@@ -168,23 +168,33 @@ def textures_from_image(src: pathlib.Path, name: str) -> dict:
     w, h = im.size
 
     # --- skybox: MuJoCo maps a single PNG onto all six cube faces, so it must
-    # be SQUARE — a non-square image fails with "size must be integer multiple
-    # of gridsize". Build 1024x1024: sky above, the image's horizon band below,
-    # mirrored so the wrap has no seam.
+    # be SQUARE, and the image's vertical middle sits at the horizon. Rather
+    # than pasting a photo band (whose below-horizon rows read as a grey
+    # smear), sample the photo's real sky gradient row by row and paint the
+    # whole face with it: zenith colour at the top, the photo's pale horizon
+    # haze at the middle, held below the middle so a pitched camera never sees
+    # an edge.
     S = 1024
-    sky_band = im.crop((0, int(h * 0.18), w, int(h * 0.62))).resize((S // 2, S // 2),
-                                                                   Image.LANCZOS)
-    band = Image.new("RGB", (S, S // 2))
-    band.paste(sky_band, (0, 0))
-    band.paste(sky_band.transpose(Image.FLIP_LEFT_RIGHT), (S // 2, 0))
-    top_rgb = tuple(int(v) for v in
-                    np.asarray(im.crop((0, 0, w, max(1, int(h * 0.10))))
-                               .resize((64, 8)), np.float32).reshape(-1, 3).mean(0))
-    sky = Image.new("RGB", (S, S), top_rgb)
-    sky.paste(band, (0, S // 2))
+    a_full = np.asarray(im, np.float32)
+    y0 = max(8, find_horizon(a_full))
+    # Stop the ramp well above the detected horizon: detection runs a few rows
+    # low, and any ground rows leak a pink/tan cast into the sky gradient.
+    ramp = a_full[:int(y0 * 0.82)].mean(axis=1)         # per-row sky colour
+    # smooth the ramp so sensor noise/clouds do not band
+    k = max(1, y0 // 24)
+    kernel = np.ones(k) / k
+    ramp = np.stack([np.convolve(ramp[:, c], kernel, mode="same") for c in range(3)], 1)
+    top = np.asarray(Image.fromarray(np.clip(ramp, 0, 255).astype(np.uint8)[:, None, :])
+                     .resize((1, S // 2), Image.LANCZOS), np.float32)[:, 0, :]
+    horizon_rgb = ramp[-max(1, y0 // 12):].mean(0)
+    sky_a = np.empty((S, S, 3), np.float32)
+    sky_a[:S // 2] = top[:, None, :]
+    # below the horizon: hold the haze colour, fading very slightly darker
+    fade = np.linspace(1.0, 0.985, S - S // 2)[:, None, None]
+    sky_a[S // 2:] = horizon_rgb[None, None, :] * fade
+    sky = Image.fromarray(np.clip(sky_a, 0, 255).astype(np.uint8))
     sky_path = TEX_DIR / f"sky_{name}.png"
     sky.save(sky_path)
-
     # --- ground: the foreground band. Take it from near the bottom, where the
     # surface fills the frame, and tile it.
     g = im.crop((int(w * 0.18), int(h * 0.72), int(w * 0.82), h))

@@ -1,4 +1,4 @@
-"""Scenes generated from text or images."""
+"""Scenes generated from text or images. Auto-appended."""
 import json
 
 CUSTOM = {
@@ -135,27 +135,29 @@ CUSTOM = {
     }
   },
   "my_scene": {
-    "geoms": "    <geom name=\"rock_l1\" type=\"sphere\" size=\"0.45\" pos=\"2.5 2.2 0.45\" material=\"stone\"/>\n    <geom name=\"rock_r1\" type=\"sphere\" size=\"0.5\" pos=\"2.8 -2.5 0.5\" material=\"stone\"/>\n    <geom name=\"rock_l2\" type=\"sphere\" size=\"0.6\" pos=\"4.0 3.5 0.6\" material=\"stone\"/>\n    <geom name=\"rock_r2\" type=\"sphere\" size=\"0.55\" pos=\"4.5 -3.2 0.55\" material=\"stone\"/>\n    <geom name=\"boulder_l1\" type=\"box\" size=\"0.6 0.7 0.5\" pos=\"5.5 4.5 0.5\" material=\"stone\"/>\n    <geom name=\"boulder_r1\" type=\"box\" size=\"0.7 0.6 0.6\" pos=\"5.8 -4.2 0.6\" material=\"stone\"/>\n    <geom name=\"rock_l3\" type=\"sphere\" size=\"0.45\" pos=\"6.5 2.5 0.45\" material=\"stone\"/>\n    <geom name=\"rock_r3\" type=\"sphere\" size=\"0.4\" pos=\"7.0 -2.8 0.4\" material=\"stone\"/>\n    <geom name=\"boulder_l2\" type=\"box\" size=\"0.8 0.6 0.7\" pos=\"8.5 5.0 0.7\" material=\"stone\"/>\n    <geom name=\"boulder_r2\" type=\"box\" size=\"0.6 0.8 0.5\" pos=\"8.8 -5.2 0.5\" material=\"stone\"/>\n    <geom name=\"rock_l4\" type=\"sphere\" size=\"0.5\" pos=\"9.5 3.0 0.5\" material=\"stone\"/>\n    <geom name=\"rock_r4\" type=\"sphere\" size=\"0.55\" pos=\"10.0 -3.5 0.55\" material=\"stone\"/>\n    <geom name=\"boulder_l3\" type=\"box\" size=\"0.9 0.7 0.6\" pos=\"11.5 4.5 0.6\" material=\"stone\"/>\n    <geom name=\"boulder_r3\" type=\"box\" size=\"0.7 0.9 0.65\" pos=\"12.0 -4.8 0.65\" material=\"stone\"/>\n    <geom name=\"rock_l5\" type=\"sphere\" size=\"0.5\" pos=\"12.8 2.8 0.5\" material=\"stone\"/>\n    <geom name=\"rock_r5\" type=\"sphere\" size=\"0.45\" pos=\"13.2 -2.6 0.45\" material=\"stone\"/>\n    <geom name=\"boulder_l4\" type=\"box\" size=\"0.8 0.8 0.7\" pos=\"14.5 5.5 0.7\" material=\"stone\"/>\n    <geom name=\"boulder_r4\" type=\"box\" size=\"0.7 0.7 0.6\" pos=\"15.0 -5.0 0.6\" material=\"stone\"/>\n    <geom name=\"rock_l6\" type=\"sphere\" size=\"0.55\" pos=\"16.0 3.2 0.55\" material=\"stone\"/>\n    <geom name=\"rock_r6\" type=\"sphere\" size=\"0.5\" pos=\"16.5 -3.0 0.5\" material=\"stone\"/>\n    <geom name=\"boulder_l5\" type=\"box\" size=\"1.0 0.8 0.8\" pos=\"18.0 4.8 0.8\" material=\"stone\"/>\n    <geom name=\"boulder_r5\" type=\"box\" size=\"0.8 1.0 0.7\" pos=\"18.5 -5.2 0.7\" material=\"stone\"/>\n    <geom name=\"rock_l7\" type=\"sphere\" size=\"0.5\" pos=\"19.5 2.5 0.5\" material=\"stone\"/>\n    <geom name=\"rock_r7\" type=\"sphere\" size=\"0.5\" pos=\"19.8 -2.8 0.5\" material=\"stone\"/>\n",
+    "geoms": "    <geom name=\"rock_left_1\" type=\"sphere\" size=\"0.45\" pos=\"8 5.5 0.45\" material=\"stone\"/>\n    <geom name=\"rock_right_1\" type=\"sphere\" size=\"0.4\" pos=\"14 -5.8 0.4\" material=\"stone\"/>\n",
     "look": {
       "base_rgb": [
-        78,
-        72,
-        54
+        106,
+        95,
+        83
       ],
       "dirt_rgb": [
-        120,
-        108,
-        91
+        102,
+        94,
+        86
       ],
       "contrast": 0.75,
       "sky": [
-        "0.36 0.56 0.66",
-        "0.62 0.75 0.79"
+        "0.73 0.80 0.86",
+        "0.68 0.67 0.66"
       ],
       "repeat": "3 3",
-      "prompt": "A vast empty desert highway of dark asphalt with faded white lane markings stretches straight to a hazy horizon under a cloudless pale-blue sky, flanked by flat rust-orange sand strewn with scattered rocks and low scrub.",
+      "prompt": "A long cracked asphalt highway with a faded white dashed centreline runs dead straight toward a blinding low sun across a vast flat desert plain under a hazy pale-blue sky.",
       "skybox_file": "/home/finch/Vishal_project/inception/inception-hackathon/out/textures/sky_my_scene.png",
-      "ground_file": "/home/finch/Vishal_project/inception/inception-hackathon/out/textures/rect_my_scene.png"
+      "ground_file": "/home/finch/Vishal_project/inception/inception-hackathon/out/textures/gnd_my_scene.png",
+      "extra_assets": "    <texture type=\"2d\" name=\"roadtex\" file=\"/home/finch/Vishal_project/inception/inception-hackathon/out/textures/rect_my_scene.png\"/>\n    <material name=\"roadmat\" texture=\"roadtex\" texrepeat=\"2.50 1\"/>\n",
+      "extra_geoms": "    <geom name=\"road_strip\" type=\"box\" pos=\"20 0 0.012\" size=\"30 6.12 0.01\" material=\"roadmat\" contype=\"0\" conaffinity=\"0\"/>\n"
     }
   },
   "road2": {
