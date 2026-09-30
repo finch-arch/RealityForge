@@ -2,7 +2,7 @@
 
 # Humanoid in a Generated World
 
-**A Unitree G1 you drive with WASD, walking with real MuJoCo physics through
+**A Unitree G1 you drive with W,A,S,D walking with real MuJoCo physics through
 worlds created from a sentence or a photograph.**
 
 </div>
@@ -31,12 +31,6 @@ collide with derive from the same source.
 | <img src="media/drive.gif" width="380"/> | <img src="media/medieval.gif" width="380"/> |
 | *a highway photo, rectified into a walkable road — driven live through the GUI* | *a medieval alley preset — walls stop the robot, barrels are obstacles* |
 
-| Inside the world model | Text → world in ~30 s |
-|:---:|:---:|
-| <img src="media/lingbot.gif" width="380"/> | <img src="media/oyster_first.png" width="380"/> |
-| *G1 composited into LingBot World 2's live generated video* | *HappyOyster's frame for "a riverside ghat in Varanasi"* |
-
-**Photo in, world out** — layout, palette, ground surface and sky all derived from one image:
 
 <img src="media/ROAD_MATCH.png" width="640"/>
 
